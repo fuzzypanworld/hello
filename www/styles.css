@@ -327,3 +327,112 @@ button:focus {
 		font-size: 1rem;
 	}
 }
+
+/* Reaction button in controls */
+.reaction-toggle {
+	font-size: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.emoji-icon {
+	font-size: 24px;
+	line-height: 1;
+}
+
+/* Reaction panel */
+.reaction-panel {
+	position: absolute;
+	bottom: 80px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(0, 0, 0, 0.7);
+	border-radius: 24px;
+	padding: 8px;
+	display: flex;
+	gap: 8px;
+	z-index: 100;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.reaction-button {
+	font-size: 24px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	border-radius: 50%;
+	transition: background-color 0.2s;
+	color: white;
+}
+
+.reaction-button:hover {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Reaction display */
+.reaction-display {
+	position: absolute;
+	bottom: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	animation: float-up 4s ease-out forwards;
+	z-index: 10;
+	pointer-events: none;
+}
+
+.reaction-emoji {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.reaction-text {
+	font-size: 36px;
+	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.reaction-name {
+	font-size: 12px;
+	background: rgba(0, 0, 0, 0.5);
+	color: white;
+	padding: 2px 6px;
+	border-radius: 10px;
+	margin-top: 4px;
+}
+
+@keyframes float-up {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, 0);
+	}
+	10% {
+		opacity: 1;
+		transform: translate(-50%, 0);
+	}
+	80% {
+		opacity: 1;
+		transform: translate(-50%, -60px);
+	}
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -100px);
+	}
+}
+
+/* Update app title */
+.welcome-title, .app-title {
+	font-weight: bold;
+	color: var(--primary-color, #4285f4);
+}
+
+.welcome-title {
+	font-size: 2.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.app-title {
+	font-size: 1.5rem;
+	margin: 0;
+}
