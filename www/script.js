@@ -4,7 +4,7 @@
 
 const App = Vue.createApp({
 	data() {
-		const channelId = window.location.pathname.substr(1);
+		const channelId = window.location.pathname.substr(1) || Math.random().toString(36).substr(2, 9);
 		const channelLink = `${window.location.origin}/${channelId}`;
 		const searchParams = new URLSearchParams(window.location.search);
 
@@ -60,10 +60,14 @@ const App = Vue.createApp({
 	},
 	methods: {
 		initiateCall() {
-			if (!this.channelId) return alert("Invalid channel id");
+			if (!this.name) {
+				this.setToast("Please enter your name", "error");
+				return;
+			}
 
-			if (!this.name) return alert("Please enter your name");
-
+			// Store name in localStorage for future use
+			window.localStorage.name = this.name;
+			
 			this.callInitiated = true;
 			window.initiateCall();
 		},
