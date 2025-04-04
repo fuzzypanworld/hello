@@ -436,3 +436,109 @@ button:focus {
 	font-size: 1.5rem;
 	margin: 0;
 }
+
+.video-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	background: #1a1a1a;
+	border-radius: 12px;
+	overflow: hidden;
+}
+
+.video-overlay {
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	padding: 16px;
+	background: linear-gradient(transparent, rgba(0,0,0,0.7));
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-end;
+}
+
+.control-buttons {
+	display: flex;
+	gap: 8px;
+}
+
+.control-button {
+	background: rgba(255,255,255,0.2);
+	border: none;
+	border-radius: 50%;
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: background-color 0.2s;
+}
+
+.control-button:hover {
+	background: rgba(255,255,255,0.3);
+}
+
+.reaction-panel {
+	position: absolute;
+	bottom: 80px;
+	left: 50%;
+	transform: translateX(-50%);
+	background: rgba(0,0,0,0.8);
+	border-radius: 24px;
+	padding: 8px;
+	display: flex;
+	gap: 8px;
+	z-index: 1000;
+}
+
+.reaction-button {
+	font-size: 24px;
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	border-radius: 50%;
+	transition: transform 0.2s;
+}
+
+.reaction-button:hover {
+	transform: scale(1.2);
+}
+
+.reaction-display {
+	position: absolute;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	animation: float-up 4s ease-out forwards;
+}
+
+@keyframes float-up {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, 0);
+	}
+	10% {
+		opacity: 1;
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -100px);
+	}
+}
+
+.name-tag {
+	color: white;
+	font-size: 14px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	background: rgba(0,0,0,0.5);
+}

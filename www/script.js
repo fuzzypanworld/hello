@@ -329,26 +329,57 @@ const App = Vue.createApp({
 		},
 		toggleReactionPanel() {
 			this.showReactionPanel = !this.showReactionPanel;
+			// Close panel when clicking outside
+			if (this.showReactionPanel) {
+				setTimeout(() => {
+					const closePanel = (e) => {
+						if (!e.target.closest('.reaction-panel')) {
+							this.showReactionPanel = false;
+							document.removeEventListener('click', closePanel);
+						}
+					};
+					document.addEventListener('click', closePanel);
+				}, 0);
+			}
 		},
 		sendReaction(reactionType) {
-			this.showReactionPanel = false; // Hide panel after selection
+			this.showReactionPanel = false;
 			this.sendDataMessage("reaction", reactionType);
+			// Show reaction locally immediately
+			this.displayReaction(this.peerId, reactionType);
 		},
 		displayReaction(peerId, reactionType) {
-			if (!this.peers[peerId]) return;
+			const peerData = peerId === this.peerId ? 
+				{ data: { peerName: this.name + ' (You)' } } : 
+				this.peers[peerId];
+			
+			if (!peerData) return;
 			
 			const reactionId = Date.now();
-			this.peers[peerId].data.latestReaction = {
-				type: reactionType,
-				id: reactionId,
-				name: this.peers[peerId].data.peerName || 'Unknown'
-			};
+			if (peerId === this.peerId) {
+				// Handle local reaction
+				const container = document.querySelector('.local-video-container');
+				this.showReactionElement(container, reactionType, peerData.data.peerName, reactionId);
+			} else {
+				// Handle remote reaction
+				const container = document.querySelector(`[data-peer-id="${peerId}"]`);
+				this.showReactionElement(container, reactionType, peerData.data.peerName, reactionId);
+			}
+		},
+		showReactionElement(container, reactionType, name, reactionId) {
+			if (!container) return;
 			
-			setTimeout(() => {
-				if (this.peers[peerId]?.data.latestReaction?.id === reactionId) {
-					this.peers[peerId].data.latestReaction = null;
-				}
-			}, 4000);
+			const reactionEl = document.createElement('div');
+			reactionEl.className = 'reaction-display';
+			reactionEl.innerHTML = `
+				<div class="reaction-emoji">
+					<span class="reaction-text">${reactionType}</span>
+					<span class="reaction-name">${name}</span>
+				</div>
+			`;
+			
+			container.appendChild(reactionEl);
+			setTimeout(() => reactionEl.remove(), 4000);
 		},
 	},
 	watch: {
