@@ -831,3 +831,51 @@ button:focus {
 	font-weight: 500;
 	cursor: pointer;
 }
+
+/* Fix icon font loading */
+@font-face {
+	font-family: 'icomoon';
+	src: url('assets/icomoon/fonts/icomoon.eot?v1');
+	src: url('assets/icomoon/fonts/icomoon.eot?v1#iefix') format('embedded-opentype'),
+		 url('assets/icomoon/fonts/icomoon.ttf?v1') format('truetype'),
+		 url('assets/icomoon/fonts/icomoon.woff?v1') format('woff'),
+		 url('assets/icomoon/fonts/icomoon.svg?v1#icomoon') format('svg');
+	font-weight: normal;
+	font-style: normal;
+	font-display: block;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+	/* use !important to prevent issues with browser extensions that change fonts */
+	font-family: 'icomoon' !important;
+	speak: never;
+	font-style: normal;
+	font-weight: normal;
+	font-variant: normal;
+	text-transform: none;
+	line-height: 1;
+	
+	/* Better Font Rendering =========== */
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Define specific icon codes */
+.icon-mic:before {
+	content: "\e91e";
+}
+.icon-mic-off:before {
+	content: "\e91f";
+}
+.icon-video:before {
+	content: "\e936";
+}
+.icon-video-off:before {
+	content: "\e937";
+}
+.icon-message-circle:before {
+	content: "\e91a";
+}
+.icon-settings:before {
+	content: "\e92f";
+}

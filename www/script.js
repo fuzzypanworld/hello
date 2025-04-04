@@ -35,7 +35,7 @@ const App = Vue.createApp({
 			chatMessage: "",
 			showChat: false,
 			showReactionPanel: false,
-			availableReactions: ["👍", "👏", "❤️", "😂", "😮", "��", "👋", "🤔"],
+			availableReactions: ['👍', '❤️', '😂', '😮', '😢', '👏'],
 			toast: [{ type: "", message: "" }],
 			previewStream: null,
 			previewAudioEnabled: true,
@@ -71,19 +71,68 @@ const App = Vue.createApp({
 			// Store name in localStorage for future use
 			window.localStorage.name = this.name;
 			
-			// Use the preview stream for the call
+			// Use the preview stream for the call if available
 			if (this.previewStream) {
-				this.localMediaStream = this.previewStream;
-				this.audioEnabled = this.previewAudioEnabled;
-				this.videoEnabled = this.previewVideoEnabled;
-			}
-			
-			this.callInitiated = true;
-			window.initiateCall();
-			
-			// Update URL to include meeting ID without page reload
-			if (window.history && window.history.pushState) {
-				window.history.pushState({}, "WEquil Meet", `/${this.channelId}`);
+				// Stop the preview stream first
+				this.previewStream.getTracks().forEach(track => track.stop());
+				
+				// Get a fresh stream for the call
+				navigator.mediaDevices.getUserMedia({
+					audio: { deviceId: { exact: this.selectedAudioDeviceId } },
+					video: { deviceId: { exact: this.selectedVideoDeviceId } }
+				}).then(stream => {
+					this.localMediaStream = stream;
+					
+					// Update local video
+					const localVideo = document.getElementById("localVideo");
+					if (localVideo) {
+						localVideo.srcObject = this.localMediaStream;
+					}
+					
+					this.audioEnabled = true;
+					this.videoEnabled = true;
+					
+					// Now initiate the call
+					this.callInitiated = true;
+					window.initiateCall();
+					
+					// Update URL to include meeting ID without page reload
+					if (window.history && window.history.pushState) {
+						window.history.pushState({}, "WEquil Meet", `/${this.channelId}`);
+					}
+				}).catch(error => {
+					console.error("Error getting media for call:", error);
+					this.setToast("Error accessing camera or microphone. Please check permissions.", "error");
+				});
+			} else {
+				// Fallback if preview stream isn't available
+				navigator.mediaDevices.getUserMedia({
+					audio: { deviceId: { exact: this.selectedAudioDeviceId } },
+					video: { deviceId: { exact: this.selectedVideoDeviceId } }
+				}).then(stream => {
+					this.localMediaStream = stream;
+					
+					// Update local video
+					const localVideo = document.getElementById("localVideo");
+					if (localVideo) {
+						localVideo.srcObject = this.localMediaStream;
+					}
+					
+					this.audioEnabled = true;
+					this.videoEnabled = true;
+					
+					// Now initiate the call
+					this.callInitiated = true;
+					window.initiateCall();
+					
+					// Update URL to include meeting ID without page reload
+					if (window.history && window.history.pushState) {
+						window.history.pushState({}, "WEquil Meet", `/${this.channelId}`);
+					}
+				}).catch(error => {
+					console.error("Error getting media for call:", error);
+					this.setToast("Error accessing camera or microphone. Please check permissions.", "error");
+				});
 			}
 		},
 		setToast(message, type = "error") {

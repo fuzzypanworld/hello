@@ -106,6 +106,7 @@
 							:key="peer.id" 
 							class="video-container remote-video-container"
 							:class="{ 'is-talking': peer.isTalking }"
+							:data-peer-id="peer.id"
 						>
 							<video :id="'video-' + peer.id" autoplay playsinline></video>
 							<div class="video-overlay">
@@ -162,30 +163,21 @@
 						<button @click="toggleVideo" class="control-button" :class="{ 'disabled': !videoEnabled }">
 							<span :class="videoEnabled ? 'icon-video' : 'icon-video-off'"></span>
 						</button>
-						
-						<!-- Reaction button -->
 						<button @click="toggleReactionPanel" class="control-button reaction-toggle">
-							<span class="emoji-icon">😀</span>
+							😀
 						</button>
-						
-						<button v-if="chatEnabled" @click="showChat = !showChat" class="control-button">
-							<span class="icon-message-circle"></span>
-						</button>
-					</div>
-					
-					<div class="control-group">
-						<button onclick="window.location.href='/'" class="end-call-button">
+						<button @click="leaveCall" class="end-call-button">
 							Leave
 						</button>
 					</div>
 				</footer>
 				
-				<!-- Reaction panel -->
+				<!-- Reaction Panel -->
 				<div v-if="showReactionPanel" class="reaction-panel">
 					<button 
 						v-for="reaction in availableReactions" 
-						:key="reaction" 
-						@click="sendReaction(reaction)" 
+						:key="reaction"
+						@click="sendReaction(reaction)"
 						class="reaction-button"
 					>
 						{{ reaction }}
