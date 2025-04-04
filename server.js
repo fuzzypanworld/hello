@@ -3,17 +3,26 @@ const path = require("path");
 
 const app = express();
 
-// ✅ Explicitly set the views directory
+// Set the views directory
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-// ✅ Serve Static Files (Ensure "views" is included in the deployed files)
+// Serve Static Files
 app.use(express.static(path.join(__dirname, "www"), { maxAge: 0 }));
 
-// ✅ Test Route
+// Home route
 app.get("/", (req, res) => {
-    res.render("index", { page: "index", title: "A free video chat for the web." });
+    res.render("index", { page: "index", title: "WEquil Meet - Simple, secure video conferencing" });
 });
 
-// ✅ Export app for Vercel
+// Meeting route - handle any path as a meeting ID
+app.get("/:meetingId", (req, res) => {
+    res.render("index", { 
+        page: "meeting", 
+        title: "WEquil Meet - Meeting", 
+        meetingId: req.params.meetingId 
+    });
+});
+
+// Export app for Vercel
 module.exports = app;

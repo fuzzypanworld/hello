@@ -9,16 +9,56 @@
 					<h1 class="welcome-title">WEquil Meet</h1>
 					<p class="welcome-subtitle">Secure, simple video conferencing</p>
 					
+					<div class="preview-container">
+						<video id="previewVideo" autoplay playsinline muted></video>
+						
+						<div class="preview-controls">
+							<button @click="togglePreviewAudio" class="preview-button" :class="{ 'disabled': !previewAudioEnabled }">
+								<span :class="previewAudioEnabled ? 'icon-mic' : 'icon-mic-off'"></span>
+							</button>
+							<button @click="togglePreviewVideo" class="preview-button" :class="{ 'disabled': !previewVideoEnabled }">
+								<span :class="previewVideoEnabled ? 'icon-video' : 'icon-video-off'"></span>
+							</button>
+						</div>
+					</div>
+					
 					<div class="input-group">
 						<label for="name">Your Name</label>
 						<input 
 							type="text" 
 							id="name" 
 							v-model="name" 
-							@input="updateName" 
 							placeholder="Enter your name" 
 							required
 						/>
+					</div>
+					
+					<div class="device-selection">
+						<div class="input-group">
+							<label for="audioDevice">Microphone</label>
+							<select id="audioDevice" v-model="selectedAudioDeviceId">
+								<option 
+									v-for="device in audioDevices" 
+									:key="device.deviceId" 
+									:value="device.deviceId"
+								>
+									{{ device.label || `Microphone ${audioDevices.indexOf(device) + 1}` }}
+								</option>
+							</select>
+						</div>
+						
+						<div class="input-group">
+							<label for="videoDevice">Camera</label>
+							<select id="videoDevice" v-model="selectedVideoDeviceId" @change="updatePreviewVideo">
+								<option 
+									v-for="device in videoDevices" 
+									:key="device.deviceId" 
+									:value="device.deviceId"
+								>
+									{{ device.label || `Camera ${videoDevices.indexOf(device) + 1}` }}
+								</option>
+							</select>
+						</div>
 					</div>
 					
 					<button class="primary-button" @click="initiateCall">Join Meeting</button>

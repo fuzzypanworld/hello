@@ -37,6 +37,9 @@ const App = Vue.createApp({
 			showReactionPanel: false,
 			availableReactions: ["👍", "👏", "❤️", "😂", "😮", "��", "👋", "🤔"],
 			toast: [{ type: "", message: "" }],
+			previewStream: null,
+			previewAudioEnabled: true,
+			previewVideoEnabled: true,
 		};
 	},
 	computed: {
@@ -68,8 +71,20 @@ const App = Vue.createApp({
 			// Store name in localStorage for future use
 			window.localStorage.name = this.name;
 			
+			// Use the preview stream for the call
+			if (this.previewStream) {
+				this.localMediaStream = this.previewStream;
+				this.audioEnabled = this.previewAudioEnabled;
+				this.videoEnabled = this.previewVideoEnabled;
+			}
+			
 			this.callInitiated = true;
 			window.initiateCall();
+			
+			// Update URL to include meeting ID without page reload
+			if (window.history && window.history.pushState) {
+				window.history.pushState({}, "WEquil Meet", `/${this.channelId}`);
+			}
 		},
 		setToast(message, type = "error") {
 			this.toast = { type, message, time: new Date().getTime() };
@@ -381,6 +396,77 @@ const App = Vue.createApp({
 			container.appendChild(reactionEl);
 			setTimeout(() => reactionEl.remove(), 4000);
 		},
+		async initializePreview() {
+			try {
+				this.previewStream = await navigator.mediaDevices.getUserMedia({
+					audio: { deviceId: { ideal: this.selectedAudioDeviceId } },
+					video: { deviceId: { ideal: this.selectedVideoDeviceId } }
+				});
+				
+				const previewVideo = document.getElementById("previewVideo");
+				if (previewVideo) {
+					previewVideo.srcObject = this.previewStream;
+				}
+				
+				this.previewAudioEnabled = true;
+				this.previewVideoEnabled = true;
+			} catch (error) {
+				console.error("Error initializing preview:", error);
+				this.setToast("Error accessing camera or microphone. Please check permissions.", "error");
+				this.previewAudioEnabled = false;
+				this.previewVideoEnabled = false;
+			}
+		},
+		togglePreviewAudio() {
+			if (this.previewStream) {
+				const audioTracks = this.previewStream.getAudioTracks();
+				if (audioTracks.length > 0) {
+					audioTracks[0].enabled = !audioTracks[0].enabled;
+					this.previewAudioEnabled = audioTracks[0].enabled;
+				}
+			}
+		},
+		togglePreviewVideo() {
+			if (this.previewStream) {
+				const videoTracks = this.previewStream.getVideoTracks();
+				if (videoTracks.length > 0) {
+					videoTracks[0].enabled = !videoTracks[0].enabled;
+					this.previewVideoEnabled = videoTracks[0].enabled;
+				}
+			}
+		},
+		updatePreviewVideo() {
+			if (this.previewStream) {
+				// Stop all tracks
+				this.previewStream.getTracks().forEach(track => track.stop());
+				
+				// Get new stream with selected device
+				navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: { deviceId: { exact: this.selectedVideoDeviceId } }
+				}).then(stream => {
+					const videoTrack = stream.getVideoTracks()[0];
+					
+					// Replace video track in preview stream
+					const oldVideoTrack = this.previewStream.getVideoTracks()[0];
+					if (oldVideoTrack) {
+						this.previewStream.removeTrack(oldVideoTrack);
+					}
+					this.previewStream.addTrack(videoTrack);
+					
+					// Update preview video element
+					const previewVideo = document.getElementById("previewVideo");
+					if (previewVideo) {
+						previewVideo.srcObject = this.previewStream;
+					}
+					
+					this.previewVideoEnabled = true;
+				}).catch(error => {
+					console.error("Error updating preview video:", error);
+					this.setToast("Error changing camera. Please check permissions.", "error");
+				});
+			}
+		},
 	},
 	watch: {
 		peers: {
@@ -459,5 +545,10 @@ const setTheme = (themeColor) => {
 		App.setToast("Error accessing camera or microphone. Please check permissions.");
 		App.audioEnabled = false;
 		App.videoEnabled = false;
+	}
+
+	// Initialize preview if not in a call
+	if (!App.callInitiated) {
+		await App.initializePreview();
 	}
 })();
