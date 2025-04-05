@@ -1,7 +1,7 @@
 /* globals App, io */
 "use strict";
 
-const SIGNALLING_SERVER = window.origin;
+const SIGNALLING_SERVER = window.location.origin;
 const ICE_SERVERS = [
 	{ urls: "stun:stun.l.google.com:19302" },
 	{ urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
@@ -25,8 +25,11 @@ const iceConfiguration = {
 
 // Initialize socket connection
 const socket = io(window.location.origin, {
-	transports: ['websocket'],
-	upgrade: false
+	transports: ['websocket', 'polling'],
+	upgrade: true,
+	reconnection: true,
+	reconnectionAttempts: 5,
+	reconnectionDelay: 1000
 });
 
 // Peer connection management
