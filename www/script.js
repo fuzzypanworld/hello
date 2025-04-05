@@ -250,34 +250,43 @@ const App = Vue.createApp({
 		},
 		handleIncomingDataChannelMessage(rawMessage) {
 			try {
-				const dataMessage = JSON.parse(rawMessage.data);
+				const dataMessage = typeof rawMessage === 'string' ? JSON.parse(rawMessage) : rawMessage;
 
 				if (!dataMessage || !dataMessage.type || !dataMessage.peerId) {
 					console.warn("Received invalid data message:", dataMessage);
 					return;
 				}
+
+				// Initialize peer data if needed
 				if (!this.peers[dataMessage.peerId] && dataMessage.type !== 'peerName') {
 					console.warn(`Peer ${dataMessage.peerId} not found for message type ${dataMessage.type}.`);
+					return;
 				}
+
 				if (this.peers[dataMessage.peerId] && !this.peers[dataMessage.peerId].data) {
-					 this.peers[dataMessage.peerId].data = { peerName: '...', isTalking: false, isAudioMuted: false, isVideoMuted: false, latestReaction: null };
+					this.peers[dataMessage.peerId].data = {
+						peerName: '...',
+						isTalking: false,
+						isAudioMuted: false,
+						isVideoMuted: false,
+						latestReaction: null
+					};
 				}
 
 				switch (dataMessage.type) {
 					case "peerName":
-						const safeName = this.sanitizeString(dataMessage.message);
 						if (this.peers[dataMessage.peerId]) {
-							this.peers[dataMessage.peerId].data.peerName = safeName;
-						} else {
-							console.warn(`Received peerName for unknown peerId: ${dataMessage.peerId}. Name: ${safeName}`);
+							this.peers[dataMessage.peerId].data.peerName = this.sanitizeString(dataMessage.message);
 						}
 						break;
 					case "chat":
 						this.showChat = true;
-						dataMessage.message = this.linkify(dataMessage.message);
-						this.chats.push(dataMessage);
+						this.chats.push({
+							...dataMessage,
+							message: this.linkify(dataMessage.message)
+						});
 						break;
-					case "mute": {
+					case "mute":
 						const muteInfo = JSON.parse(dataMessage.message);
 						if (this.peers[dataMessage.peerId]?.data) {
 							if (muteInfo.kind === "audio") {
@@ -287,17 +296,15 @@ const App = Vue.createApp({
 							}
 						}
 						break;
-					}
 					case "reaction":
-						const safeReaction = this.sanitizeString(dataMessage.message);
-						this.displayReaction(dataMessage.peerId, safeReaction);
+						this.displayReaction(dataMessage.peerId, dataMessage.message);
 						break;
 					default:
 						console.log("Unknown data message type:", dataMessage.type);
 						break;
 				}
 			} catch (error) {
-				console.error("Failed to parse incoming data message:", error, rawMessage.data);
+				console.error("Failed to parse incoming data message:", error, rawMessage);
 			}
 		},
 		async stopAudio() {
@@ -393,11 +400,11 @@ const App = Vue.createApp({
 		},
 		toggleReactionPanel() {
 			this.showReactionPanel = !this.showReactionPanel;
-			// Close panel when clicking outside
 			if (this.showReactionPanel) {
+				// Close panel when clicking outside
 				setTimeout(() => {
 					const closePanel = (e) => {
-						if (!e.target.closest('.reaction-panel')) {
+						if (!e.target.closest('.reaction-panel') && !e.target.closest('.reaction-toggle')) {
 							this.showReactionPanel = false;
 							document.removeEventListener('click', closePanel);
 						}
@@ -409,30 +416,27 @@ const App = Vue.createApp({
 		sendReaction(reactionType) {
 			this.showReactionPanel = false;
 			this.sendDataMessage("reaction", reactionType);
-			// Show reaction locally immediately
-			this.displayReaction(this.peerId, reactionType);
 		},
 		displayReaction(peerId, reactionType) {
-			const peerData = peerId === this.peerId ? 
-				{ data: { peerName: this.name + ' (You)' } } : 
-				this.peers[peerId];
-			
-			if (!peerData) return;
-			
-			const reactionId = Date.now();
+			if (!peerId || !reactionType) return;
+
+			// Update peer's latest reaction
 			if (peerId === this.peerId) {
-				// Handle local reaction
-				const container = document.querySelector('.local-video-container');
-				this.showReactionElement(container, reactionType, peerData.data.peerName, reactionId);
-			} else {
-				// Handle remote reaction
-				const container = document.querySelector(`[data-peer-id="${peerId}"]`);
-				this.showReactionElement(container, reactionType, peerData.data.peerName, reactionId);
+				// Local user reaction
+				this.showReactionInContainer('.local-video-container', reactionType, this.name + ' (You)');
+			} else if (this.peers[peerId]) {
+				// Remote peer reaction
+				const peerName = this.peers[peerId].data?.peerName || 'Guest';
+				const container = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
+				this.showReactionInContainer(container, reactionType, peerName);
 			}
 		},
-		showReactionElement(container, reactionType, name, reactionId) {
+		showReactionInContainer(container, reactionType, name) {
+			if (typeof container === 'string') {
+				container = document.querySelector(container);
+			}
 			if (!container) return;
-			
+
 			const reactionEl = document.createElement('div');
 			reactionEl.className = 'reaction-display';
 			reactionEl.innerHTML = `
@@ -441,9 +445,19 @@ const App = Vue.createApp({
 					<span class="reaction-name">${name}</span>
 				</div>
 			`;
-			
+
+			// Remove any existing reactions
+			const existingReaction = container.querySelector('.reaction-display');
+			if (existingReaction) {
+				existingReaction.remove();
+			}
+
 			container.appendChild(reactionEl);
-			setTimeout(() => reactionEl.remove(), 4000);
+			setTimeout(() => {
+				if (reactionEl && reactionEl.parentNode) {
+					reactionEl.remove();
+				}
+			}, 4000);
 		},
 		async initializePreview() {
 			try {

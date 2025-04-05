@@ -90,7 +90,7 @@
 				
 				<main class="call-main">
 					<div class="video-grid" :class="{ 'with-chat': showChat }">
-						<div class="video-container local-video-container">
+						<div class="video-container local-video-container" data-peer-id="local">
 							<video id="localVideo" autoplay playsinline muted></video>
 							<div class="video-overlay">
 								<div class="name-tag">{{ name }} (You)</div>
@@ -114,14 +114,6 @@
 								<div class="mute-indicators">
 									<span v-if="peer.isAudioMuted" class="icon-mic-off"></span>
 									<span v-if="peer.isVideoMuted" class="icon-video-off"></span>
-								</div>
-							</div>
-							
-							<!-- Reaction display -->
-							<div v-if="peer.latestReaction" class="reaction-display">
-								<div class="reaction-emoji">
-									<span class="reaction-text">{{ peer.latestReaction.type }}</span>
-									<span class="reaction-name">{{ peer.name || 'Guest' }}</span>
 								</div>
 							</div>
 						</div>
@@ -164,8 +156,14 @@
 							<span :class="videoEnabled ? 'icon-video' : 'icon-video-off'"></span>
 						</button>
 						<button @click="toggleReactionPanel" class="control-button reaction-toggle">
-							😀
+							<span class="emoji-icon">😀</span>
 						</button>
+						<button v-if="chatEnabled" @click="showChat = !showChat" class="control-button">
+							<span class="icon-message-circle"></span>
+						</button>
+					</div>
+					
+					<div class="control-group">
 						<button @click="leaveCall" class="end-call-button">
 							Leave
 						</button>
