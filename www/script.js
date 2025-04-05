@@ -35,11 +35,16 @@ const App = Vue.createApp({
 			chatMessage: "",
 			showChat: false,
 			showReactionPanel: false,
-			availableReactions: ['👍', '❤️', '😂', '😮', '😢', '👏'],
-			toast: [{ type: "", message: "" }],
+			availableReactions: ['👍', '👏', '❤️', '😊', '😂', '🎉'],
+			toast: {
+				message: '',
+				type: '',
+				timeout: null
+			},
 			previewStream: null,
 			previewAudioEnabled: true,
 			previewVideoEnabled: true,
+			peersArray: []
 		};
 	},
 	computed: {
@@ -413,38 +418,21 @@ const App = Vue.createApp({
 				}, 0);
 			}
 		},
-		sendReaction(reactionType) {
+		sendReaction(reaction) {
+			if (!this.dataChannel) return;
+			
+			const message = JSON.stringify({
+				type: 'reaction',
+				reaction: reaction
+			});
+			
+			this.dataChannel.send(message);
+			this.showReactionInContainer('local', reaction);
 			this.showReactionPanel = false;
-			this.sendDataMessage("reaction", reactionType);
 		},
-		displayReaction(peerId, reactionType) {
-			if (!peerId || !reactionType) return;
-
-			// Update peer's latest reaction
-			if (peerId === this.peerId) {
-				// Local user reaction
-				this.showReactionInContainer('.local-video-container', reactionType, this.name + ' (You)');
-			} else if (this.peers[peerId]) {
-				// Remote peer reaction
-				const peerName = this.peers[peerId].data?.peerName || 'Guest';
-				const container = document.querySelector(`.video-container[data-peer-id="${peerId}"]`);
-				this.showReactionInContainer(container, reactionType, peerName);
-			}
-		},
-		showReactionInContainer(container, reactionType, name) {
-			if (typeof container === 'string') {
-				container = document.querySelector(container);
-			}
+		showReactionInContainer(peerId, reaction) {
+			const container = document.querySelector(`[data-peer-id="${peerId}"]`);
 			if (!container) return;
-
-			const reactionEl = document.createElement('div');
-			reactionEl.className = 'reaction-display';
-			reactionEl.innerHTML = `
-				<div class="reaction-emoji">
-					<span class="reaction-text">${reactionType}</span>
-					<span class="reaction-name">${name}</span>
-				</div>
-			`;
 
 			// Remove any existing reactions
 			const existingReaction = container.querySelector('.reaction-display');
@@ -452,12 +440,28 @@ const App = Vue.createApp({
 				existingReaction.remove();
 			}
 
+			// Create and show new reaction
+			const reactionEl = document.createElement('div');
+			reactionEl.className = 'reaction-display';
+			reactionEl.textContent = reaction;
+			reactionEl.style.cssText = `
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				font-size: 48px;
+				animation: reaction-fade 2s ease-out forwards;
+				z-index: 10;
+			`;
+
 			container.appendChild(reactionEl);
+
+			// Remove reaction after animation
 			setTimeout(() => {
 				if (reactionEl && reactionEl.parentNode) {
 					reactionEl.remove();
 				}
-			}, 4000);
+			}, 2000);
 		},
 		async initializePreview() {
 			try {

@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
-	<%- include('head'); -%>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<title>WEquil Meet</title>
+		<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+		<link rel="stylesheet" href="styles.css">
+	</head>
 
 	<body>
 		<div id="app">
@@ -80,10 +88,10 @@
 					</div>
 					<div class="header-right">
 						<button v-if="chatEnabled" @click="showChat = !showChat" class="header-button">
-							<span class="icon-message-circle"></span>
+							<span class="material-icons">chat</span>
 						</button>
 						<button @click="showSettings = !showSettings" class="header-button">
-							<span class="icon-settings"></span>
+							<span class="material-icons">settings</span>
 						</button>
 					</div>
 				</header>
@@ -95,8 +103,8 @@
 							<div class="video-overlay">
 								<div class="name-tag">{{ name }} (You)</div>
 								<div class="mute-indicators">
-									<span v-if="!audioEnabled" class="icon-mic-off"></span>
-									<span v-if="!videoEnabled" class="icon-video-off"></span>
+									<span v-if="!audioEnabled" class="material-icons">mic_off</span>
+									<span v-if="!videoEnabled" class="material-icons">videocam_off</span>
 								</div>
 							</div>
 						</div>
@@ -112,8 +120,8 @@
 							<div class="video-overlay">
 								<div class="name-tag">{{ peer.name || 'Guest' }}</div>
 								<div class="mute-indicators">
-									<span v-if="peer.isAudioMuted" class="icon-mic-off"></span>
-									<span v-if="peer.isVideoMuted" class="icon-video-off"></span>
+									<span v-if="peer.isAudioMuted" class="material-icons">mic_off</span>
+									<span v-if="peer.isVideoMuted" class="material-icons">videocam_off</span>
 								</div>
 							</div>
 						</div>
@@ -150,22 +158,22 @@
 				<footer class="call-controls">
 					<div class="control-group">
 						<button @click="toggleAudio" class="control-button" :class="{ 'disabled': !audioEnabled }">
-							<span :class="audioEnabled ? 'icon-mic' : 'icon-mic-off'"></span>
+							<span class="material-icons">{{ audioEnabled ? 'mic' : 'mic_off' }}</span>
 						</button>
 						<button @click="toggleVideo" class="control-button" :class="{ 'disabled': !videoEnabled }">
-							<span :class="videoEnabled ? 'icon-video' : 'icon-video-off'"></span>
+							<span class="material-icons">{{ videoEnabled ? 'videocam' : 'videocam_off' }}</span>
 						</button>
 						<button @click="toggleReactionPanel" class="control-button reaction-toggle">
-							<span class="emoji-icon">😀</span>
+							<span class="material-icons">emoji_emotions</span>
 						</button>
 						<button v-if="chatEnabled" @click="showChat = !showChat" class="control-button">
-							<span class="icon-message-circle"></span>
+							<span class="material-icons">chat</span>
 						</button>
 					</div>
 					
 					<div class="control-group">
 						<button @click="leaveCall" class="end-call-button">
-							Leave
+							<span class="material-icons">call_end</span> Leave
 						</button>
 					</div>
 				</footer>

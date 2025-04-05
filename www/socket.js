@@ -12,6 +12,28 @@ const AUDIO_WINDOW_SIZE = 256;
 let signalingSocket = null; /* our socket.io connection to our webserver */
 let audioStreams = new Map(); // Holds audio stream related data for each stream
 
+// ICE configuration with STUN and TURN servers
+const iceConfiguration = {
+	iceServers: [
+		{ urls: 'stun:stun.l.google.com:19302' },
+		{ urls: 'stun:stun1.l.google.com:19302' },
+		{ urls: 'stun:stun2.l.google.com:19302' },
+		{ urls: 'stun:stun3.l.google.com:19302' },
+		{ urls: 'stun:stun4.l.google.com:19302' }
+	]
+};
+
+// Initialize socket connection
+const socket = io(window.location.origin, {
+	transports: ['websocket'],
+	upgrade: false
+});
+
+// Peer connection management
+let peerConnections = {};
+let localStream = null;
+let dataChannel = null;
+
 window.initiateCall = () => {
 	App.userAgent = navigator.userAgent;
 	signalingSocket = io(SIGNALLING_SERVER);
@@ -183,3 +205,211 @@ function removeAudioStream(peerId) {
 		audioStreams.delete(peerId);
 	}
 }
+
+// Socket event handlers
+socket.on('connect', () => {
+	console.log('Connected to signaling server');
+});
+
+socket.on('disconnect', () => {
+	console.log('Disconnected from signaling server');
+});
+
+socket.on('peer-joined', async (peerId) => {
+	console.log('Peer joined:', peerId);
+	await createPeerConnection(peerId, true);
+});
+
+socket.on('peer-left', (peerId) => {
+	console.log('Peer left:', peerId);
+	removePeerConnection(peerId);
+});
+
+socket.on('signal', async ({ from, signal }) => {
+	console.log('Received signal from peer:', from);
+	try {
+		if (!peerConnections[from]) {
+			await createPeerConnection(from, false);
+		}
+		await handleSignal(from, signal);
+	} catch (error) {
+		console.error('Error handling signal:', error);
+	}
+});
+
+// Create and manage peer connections
+async function createPeerConnection(peerId, isInitiator) {
+	try {
+		const peerConnection = new RTCPeerConnection(iceConfiguration);
+		peerConnections[peerId] = peerConnection;
+
+		// Set up event handlers
+		peerConnection.onicecandidate = (event) => {
+			if (event.candidate) {
+				socket.emit('signal', {
+					to: peerId,
+					signal: {
+						type: 'candidate',
+						candidate: event.candidate
+					}
+				});
+			}
+		};
+
+		peerConnection.ontrack = (event) => {
+			console.log('Received remote track');
+			const stream = event.streams[0];
+			const videoElement = document.getElementById(`video-${peerId}`);
+			if (videoElement) {
+				videoElement.srcObject = stream;
+			}
+		};
+
+		peerConnection.onconnectionstatechange = () => {
+			console.log(`Connection state for peer ${peerId}:`, peerConnection.connectionState);
+		};
+
+		// Add local tracks
+		if (localStream) {
+			localStream.getTracks().forEach(track => {
+				peerConnection.addTrack(track, localStream);
+			});
+		}
+
+		// Create data channel
+		if (isInitiator) {
+			dataChannel = peerConnection.createDataChannel('data');
+			setupDataChannel(dataChannel);
+		} else {
+			peerConnection.ondatachannel = (event) => {
+				dataChannel = event.channel;
+				setupDataChannel(dataChannel);
+			};
+		}
+
+		// Create and send offer if initiator
+		if (isInitiator) {
+			const offer = await peerConnection.createOffer();
+			await peerConnection.setLocalDescription(offer);
+			socket.emit('signal', {
+				to: peerId,
+				signal: {
+					type: 'offer',
+					sdp: offer
+				}
+			});
+		}
+
+		return peerConnection;
+	} catch (error) {
+		console.error('Error creating peer connection:', error);
+		throw error;
+	}
+}
+
+// Handle incoming signals
+async function handleSignal(peerId, signal) {
+	const peerConnection = peerConnections[peerId];
+	if (!peerConnection) return;
+
+	try {
+		if (signal.type === 'offer') {
+			await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+			const answer = await peerConnection.createAnswer();
+			await peerConnection.setLocalDescription(answer);
+			socket.emit('signal', {
+				to: peerId,
+				signal: {
+					type: 'answer',
+					sdp: answer
+				}
+			});
+		} else if (signal.type === 'answer') {
+			await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
+		} else if (signal.type === 'candidate') {
+			await peerConnection.addIceCandidate(new RTCIceCandidate(signal.candidate));
+		}
+	} catch (error) {
+		console.error('Error handling signal:', error);
+	}
+}
+
+// Set up data channel
+function setupDataChannel(channel) {
+	channel.onopen = () => {
+		console.log('Data channel opened');
+	};
+
+	channel.onclose = () => {
+		console.log('Data channel closed');
+	};
+
+	channel.onmessage = (event) => {
+		if (window.app) {
+			window.app.handleIncomingDataChannelMessage(event);
+		}
+	};
+}
+
+// Remove peer connection
+function removePeerConnection(peerId) {
+	const peerConnection = peerConnections[peerId];
+	if (peerConnection) {
+		peerConnection.close();
+		delete peerConnections[peerId];
+	}
+}
+
+// Join a channel
+async function joinChannel(channelId, stream) {
+	localStream = stream;
+	socket.emit('join-channel', channelId);
+}
+
+// Set up local media
+async function setupLocalMedia(constraints = { audio: true, video: true }) {
+	try {
+		const stream = await navigator.mediaDevices.getUserMedia(constraints);
+		const videoElement = document.getElementById('localVideo');
+		if (videoElement) {
+			videoElement.srcObject = stream;
+		}
+		return stream;
+	} catch (error) {
+		console.error('Error accessing media devices:', error);
+		throw error;
+	}
+}
+
+// Audio analysis for active speaker detection
+function setupAudioAnalysis(stream) {
+	const audioContext = new AudioContext();
+	const analyser = audioContext.createAnalyser();
+	const microphone = audioContext.createMediaStreamSource(stream);
+	microphone.connect(analyser);
+	
+	analyser.fftSize = 256;
+	const bufferLength = analyser.frequencyBinCount;
+	const dataArray = new Uint8Array(bufferLength);
+	
+	function checkAudioLevel() {
+		analyser.getByteFrequencyData(dataArray);
+		const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+		const isSpeaking = average > 30; // Adjust threshold as needed
+		
+		if (window.app) {
+			window.app.updateSpeakingState(isSpeaking);
+		}
+		
+		requestAnimationFrame(checkAudioLevel);
+	}
+	
+	checkAudioLevel();
+}
+
+// Export functions
+window.rtcUtils = {
+	joinChannel,
+	setupLocalMedia,
+	setupAudioAnalysis
+};
